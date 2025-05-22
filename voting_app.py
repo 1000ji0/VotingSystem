@@ -2,44 +2,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 from collections import defaultdict
 
-# CSS 스타일 정의
-page_bg = """
-<style>
-body {
-    background-color: #ffe0b3 !important;
-}
-.center-button button {
-    display: block;
-    margin: 4rem auto;
-    font-size: 2.5rem !important;
-    padding: 2rem 4rem !important;
-    background-color: #ff944d !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 15px !important;
-    cursor: pointer;
-    font-weight: bold !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
-}
-.center-button button:hover {
-    background-color: #e07b39 !important;
-    transform: scale(1.1) !important;
-}
-h1.title {
-    text-align: center;
-    font-size: 4em !important;
-    color: #ff6600 !important;
-}
-.progress-text {
-    text-align: center;
-    font-size: 1.2em !important;
-    color: #333 !important;
-}
-</style>
-"""
-
-# CSS를 모든 페이지에 적용
-st.markdown(page_bg, unsafe_allow_html=True)
 
 # 투표 계산 함수들
 def calculate_borda(votes, candidates):

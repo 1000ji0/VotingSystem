@@ -10,17 +10,19 @@ body {
 }
 .center-button button {
     display: block;
-    margin: 2rem auto;
-    font-size: 1.5rem;
-    padding: 1rem 2rem;
+    margin: 3rem auto;
+    font-size: 2rem; /* 버튼 텍스트 크기 증가 */
+    padding: 1.5rem 3rem; /* 버튼 패딩 증가 */
     background-color: #ff944d;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
+    font-weight: bold; /* 텍스트 굵게 */
 }
 .center-button button:hover {
     background-color: #e07b39;
+    transform: scale(1.05); /* 호버 시 약간 확대 */
 }
 h1.title {
     text-align: center;
@@ -197,61 +199,70 @@ elif st.session_state.stage == "vote_input":
     st.title(f"🗳️ {voter}의 투표 입력")
     
     st.subheader("🔢 순위 입력")
-    st.markdown("각 후보에 대해 고유한 순위를 선택하세요 (1이 가장 선호).")
+    st.markdown("각 후보에 대해 순위를 선택하세요 (1이 가장 선호). 중복 순위는 허용되지만, 다음 단계로 넘어갈 때 고유해야 합니다.")
     
-    # 순위 선택을 위한 초기화
+    # 순위 선택 초기화
     if f"rank_choices_{voter}" not in st.session_state:
-        st.session_state[f"rank_choices_{voter}"] = {c: None for c in st.session_state.candidates}
+        st.session_state[f"rank_choices_{voter}"] = {c: 1 for c in st.session_state.candidates}  # 기본값 1
     
     ranks = {}
     available_ranks = list(range(1, len(st.session_state.candidates) + 1))
     
     for candidate in st.session_state.candidates:
-        used_ranks = [r for r in st.session_state[f"rank_choices_{voter}"].values() if r is not None]
-        current_options = [r for r in available_ranks if r not in used_ranks]
-        if not current_options:
-            current_options = available_ranks  # 모든 순위가 사용된 경우 초기화 방지
         rank = st.selectbox(
             f"{candidate}의 순위",
-            options=current_options,
-            index=0 if st.session_state[f"rank_choices_{voter}"][candidate] is None else current_options.index(st.session_state[f"rank_choices_{voter}"][candidate]) if st.session_state[f"rank_choices_{voter}"][candidate] in current_options else 0,
+            options=available_ranks,
+            index=available_ranks.index(st.session_state[f"rank_choices_{voter}"][candidate]) if st.session_state[f"rank_choices_{voter}"][candidate] in available_ranks else 0,
             key=f"rank_{candidate}_{voter}_{uuid.uuid4()}"
         )
         st.session_state[f"rank_choices_{voter}"][candidate] = rank
         ranks[candidate] = rank
     
     # 순위 유효성 검사
-    selected_ranks = [r for r in ranks.values() if r is not None]
-    if len(set(selected_ranks)) != len(selected_ranks):
-        st.error("각 후보는 고유한 순위를 가져야 합니다. 중복된 순위를 수정해주세요.")
-    elif len(selected_ranks) != len(st.session_state.candidates):
+    selected_ranks = list(ranks.values())
+    if len(selected_ranks) != len(st.session_state.candidates):
         st.error("모든 후보에 순위를 지정해야 합니다.")
     elif st.button("순위 입력 완료 → 점수 입력으로 이동"):
-        st.session_state.votes[voter]['rank'] = ranks
-        st.session_state.stage = "score_input"
-        st.rerun()
+        if len(set(selected_ranks)) != len(selected_ranks):
+            st.error("각 후보는 고유한 순위를 가져야 합니다. 중복된 순위를 수정해주세요.")
+        else:
+            st.session_state.votes[voter]['rank'] = ranks
+            st.session_state.stage = "score_input"
+            st.rerun()
 
 # 점수 입력
 elif st.session_state.stage == "score_input":
     voter = st.session_state.current_voter
     st.title(f"📊 {voter}의 선호 점수 입력")
     
+    st.markdown("각 후보에 대해 점수를 입력하세요 (0~100). 중복 점수는 허용되지만, 다음 단계로 넘어갈 때 점수 분포를 확인하세요.")
     sorted_candidates = sorted(st.session_state.votes[voter]['rank'].items(), key=lambda x: x[1])
     scores = {}
+    
     for candidate, _ in sorted_candidates:
         scores[candidate] = st.number_input(
             f"{candidate}의 점수",
             min_value=0,
             max_value=100,
             step=1,
+            value=50,  # 기본값 설정
             key=f"score_{candidate}_{voter}_{uuid.uuid4()}"
         )
     
     if st.button("입력 완료 → 비밀투표 화면으로 돌아가기"):
-        st.session_state.votes[voter]['score'] = scores
-        st.session_state.completed[voter] = True
-        st.session_state.stage = "vote_select"
-        st.rerun()
+        selected_scores = list(scores.values())
+        if len(set(selected_scores)) < len(selected_scores):
+            st.warning("중복된 점수가 있습니다. 벤담 방식에서는 괜찮지만, 다른 방식에서 결과가 왜곡될 수 있습니다. 계속 진행하시겠습니까?")
+            if st.button("계속 진행"):
+                st.session_state.votes[voter]['score'] = scores
+                st.session_state.completed[voter] = True
+                st.session_state.stage = "vote_select"
+                st.rerun()
+        else:
+            st.session_state.votes[voter]['score'] = scores
+            st.session_state.completed[voter] = True
+            st.session_state.stage = "vote_select"
+            st.rerun()
 
 # 투표 방식 선택
 elif st.session_state.stage == "method_select":

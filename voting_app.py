@@ -6,36 +6,40 @@ import uuid
 page_bg = """
 <style>
 body {
-    background-color: #ffe0b3;
+    background-color: #ffe0b3 !important;
 }
 .center-button button {
     display: block;
-    margin: 3rem auto;
-    font-size: 2rem; /* 버튼 텍스트 크기 증가 */
-    padding: 1.5rem 3rem; /* 버튼 패딩 증가 */
-    background-color: #ff944d;
-    color: white;
-    border: none;
-    border-radius: 12px;
+    margin: 4rem auto;
+    font-size: 2.5rem !important; /* 버튼 텍스트 크기 */
+    padding: 2rem 4rem !important; /* 버튼 패딩 */
+    background-color: #ff944d !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 15px !important;
     cursor: pointer;
-    font-weight: bold; /* 텍스트 굵게 */
+    font-weight: bold !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important; /* 그림자 효과 */
 }
 .center-button button:hover {
-    background-color: #e07b39;
-    transform: scale(1.05); /* 호버 시 약간 확대 */
+    background-color: #e07b39 !important;
+    transform: scale(1.1) !important; /* 호버 시 확대 */
 }
 h1.title {
     text-align: center;
-    font-size: 4em;
-    color: #ff6600;
+    font-size: 4em !important;
+    color: #ff6600 !important;
 }
 .progress-text {
     text-align: center;
-    font-size: 1.2em;
-    color: #333;
+    font-size: 1.2em !important;
+    color: #333 !important;
 }
 </style>
 """
+
+# 모든 페이지에서 CSS 적용
+st.markdown(page_bg, unsafe_allow_html=True)
 
 # 투표 계산 함수들
 def calculate_borda(votes, candidates):
@@ -94,7 +98,6 @@ if 'stage' not in st.session_state:
 
 # 홈 화면
 if st.session_state.stage == "home":
-    st.markdown(page_bg, unsafe_allow_html=True)
     st.markdown("<h1 class='title'>💚 모두의 투표 💚</h1>", unsafe_allow_html=True)
 
     st.markdown("<div class='center-button'>", unsafe_allow_html=True)
@@ -199,11 +202,11 @@ elif st.session_state.stage == "vote_input":
     st.title(f"🗳️ {voter}의 투표 입력")
     
     st.subheader("🔢 순위 입력")
-    st.markdown("각 후보에 대해 순위를 선택하세요 (1이 가장 선호). 중복 순위는 허용되지만, 다음 단계로 넘어갈 때 고유해야 합니다.")
+    st.markdown("각 후보에 대해 순위를 선택하세요 (1이 가장 선호). 중복 순위는 입력 가능하지만, 다음 단계로 넘어가기 위해서는 고유해야 합니다.")
     
     # 순위 선택 초기화
     if f"rank_choices_{voter}" not in st.session_state:
-        st.session_state[f"rank_choices_{voter}"] = {c: 1 for c in st.session_state.candidates}  # 기본값 1
+        st.session_state[f"rank_choices_{voter}"] = {c: 1 for c in st.session_state.candidates}
     
     ranks = {}
     available_ranks = list(range(1, len(st.session_state.candidates) + 1))
@@ -235,7 +238,7 @@ elif st.session_state.stage == "score_input":
     voter = st.session_state.current_voter
     st.title(f"📊 {voter}의 선호 점수 입력")
     
-    st.markdown("각 후보에 대해 점수를 입력하세요 (0~100). 중복 점수는 허용되지만, 다음 단계로 넘어갈 때 점수 분포를 확인하세요.")
+    st.markdown("각 후보에 대해 점수를 입력하세요 (0~100). 중복 점수는 입력 가능하지만, 다음 단계로 넘어가기 전에 확인됩니다.")
     sorted_candidates = sorted(st.session_state.votes[voter]['rank'].items(), key=lambda x: x[1])
     scores = {}
     
@@ -245,7 +248,7 @@ elif st.session_state.stage == "score_input":
             min_value=0,
             max_value=100,
             step=1,
-            value=50,  # 기본값 설정
+            value=50,
             key=f"score_{candidate}_{voter}_{uuid.uuid4()}"
         )
     

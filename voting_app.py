@@ -1,6 +1,5 @@
 import streamlit as st
 from collections import defaultdict
-import uuid
 
 # CSS 스타일 정의
 page_bg = """
@@ -11,19 +10,19 @@ body {
 .center-button button {
     display: block;
     margin: 4rem auto;
-    font-size: 2.5rem !important; /* 버튼 텍스트 크기 */
-    padding: 2rem 4rem !important; /* 버튼 패딩 */
+    font-size: 2.5rem !important;
+    padding: 2rem 4rem !important;
     background-color: #ff944d !important;
     color: white !important;
     border: none !important;
     border-radius: 15px !important;
     cursor: pointer;
     font-weight: bold !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important; /* 그림자 효과 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
 }
 .center-button button:hover {
     background-color: #e07b39 !important;
-    transform: scale(1.1) !important; /* 호버 시 확대 */
+    transform: scale(1.1) !important;
 }
 h1.title {
     text-align: center;
@@ -38,7 +37,7 @@ h1.title {
 </style>
 """
 
-# 모든 페이지에서 CSS 적용
+# CSS를 모든 페이지에 적용
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # 투표 계산 함수들
@@ -100,11 +99,15 @@ if 'stage' not in st.session_state:
 if st.session_state.stage == "home":
     st.markdown("<h1 class='title'>💚 모두의 투표 💚</h1>", unsafe_allow_html=True)
 
-    st.markdown("<div class='center-button'>", unsafe_allow_html=True)
-    if st.button("Start", help="투표를 시작하려면 클릭하세요"):
+    st.markdown("""
+    <div class='center-button'>
+        <button style='font-size: 2.5rem; padding: 2rem 4rem; background-color: #ff944d; color: white; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);'>Start</button>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Start", key="start_button", help="투표를 시작하려면 클릭하세요"):
         st.session_state.stage = "setup"
         st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("""
@@ -200,32 +203,15 @@ elif st.session_state.stage == "vote_select":
 elif st.session_state.stage == "vote_input":
     voter = st.session_state.current_voter
     st.title(f"🗳️ {voter}의 투표 입력")
-    
-    st.subheader("🔢 순위 입력")
-    st.markdown("각 후보에 대해 순위를 선택하세요 (1이 가장 선호). 중복 순위는 입력 가능하지만, 다음 단계로 넘어가기 위해서는 고유해야 합니다.")
-    
-    # 순위 선택 초기화
-    if f"rank_choices_{voter}" not in st.session_state:
-        st.session_state[f"rank_choices_{voter}"] = {c: 1 for c in st.session_state.candidates}
-    
+
     ranks = {}
-    available_ranks = list(range(1, len(st.session_state.candidates) + 1))
-    
+    st.subheader("🔢 순위 입력")
+    st.markdown("각 후보에 대해 순위를 입력하세요 (1이 가장 선호). 중복 순위는 입력 가능하지만, 다음 단계로 넘어가기 위해서는 고유해야 합니다.")
     for candidate in st.session_state.candidates:
-        rank = st.selectbox(
-            f"{candidate}의 순위",
-            options=available_ranks,
-            index=available_ranks.index(st.session_state[f"rank_choices_{voter}"][candidate]) if st.session_state[f"rank_choices_{voter}"][candidate] in available_ranks else 0,
-            key=f"rank_{candidate}_{voter}_{uuid.uuid4()}"
-        )
-        st.session_state[f"rank_choices_{voter}"][candidate] = rank
-        ranks[candidate] = rank
-    
-    # 순위 유효성 검사
-    selected_ranks = list(ranks.values())
-    if len(selected_ranks) != len(st.session_state.candidates):
-        st.error("모든 후보에 순위를 지정해야 합니다.")
-    elif st.button("순위 입력 완료 → 점수 입력으로 이동"):
+        ranks[candidate] = st.number_input(f"{candidate}의 순위", min_value=1, max_value=len(st.session_state.candidates), step=1, key=f"rank_{candidate}_{voter}")
+
+    if st.button("순위 입력 완료 → 점수 입력으로 이동"):
+        selected_ranks = list(ranks.values())
         if len(set(selected_ranks)) != len(selected_ranks):
             st.error("각 후보는 고유한 순위를 가져야 합니다. 중복된 순위를 수정해주세요.")
         else:
@@ -237,21 +223,14 @@ elif st.session_state.stage == "vote_input":
 elif st.session_state.stage == "score_input":
     voter = st.session_state.current_voter
     st.title(f"📊 {voter}의 선호 점수 입력")
-    
-    st.markdown("각 후보에 대해 점수를 입력하세요 (0~100). 중복 점수는 입력 가능하지만, 다음 단계로 넘어가기 전에 확인됩니다.")
+
+    st.markdown("각 후보에 대해 점수를 입력하세요 (1~10). 중복 점수는 입력 가능하지만, 다음 단계로 넘어가기 전에 확인됩니다.")
     sorted_candidates = sorted(st.session_state.votes[voter]['rank'].items(), key=lambda x: x[1])
+
     scores = {}
-    
     for candidate, _ in sorted_candidates:
-        scores[candidate] = st.number_input(
-            f"{candidate}의 점수",
-            min_value=0,
-            max_value=100,
-            step=1,
-            value=50,
-            key=f"score_{candidate}_{voter}_{uuid.uuid4()}"
-        )
-    
+        scores[candidate] = st.number_input(f"{candidate}의 점수", min_value=1, max_value=10, step=1, key=f"score_{candidate}_{voter}")
+
     if st.button("입력 완료 → 비밀투표 화면으로 돌아가기"):
         selected_scores = list(scores.values())
         if len(set(selected_scores)) < len(selected_scores):

@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from collections import defaultdict
 
 # CSS 스타일 정의
@@ -99,15 +100,26 @@ if 'stage' not in st.session_state:
 if st.session_state.stage == "home":
     st.markdown("<h1 class='title'>💚 모두의 투표 💚</h1>", unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class='center-button'>
-        <button style='font-size: 2.5rem; padding: 2rem 4rem; background-color: #ff944d; color: white; border: none; border-radius: 15px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);'>Start</button>
+    # CSS 적용된 버튼에 클릭 이벤트 추가
+    components.html("""
+    <div class="center-button">
+        <button id="startButton">Start</button>
     </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("Start", key="start_button", help="투표를 시작하려면 클릭하세요"):
+    <script>
+        document.getElementById("startButton").onclick = function() {
+            window.parent.postMessage({type: "streamlit:setComponentValue", value: true}, "*");
+        };
+    </script>
+    """, height=150)
+
+    # 버튼 클릭 감지
+    if st.session_state.get("start_clicked", False):
         st.session_state.stage = "setup"
+        st.session_state.start_clicked = False
         st.rerun()
+
+    if "start_clicked" not in st.session_state:
+        st.session_state.start_clicked = False
 
     st.markdown("---")
     st.markdown("""
@@ -188,15 +200,16 @@ elif st.session_state.stage == "vote_select":
     total_voters = len(st.session_state.voters)
     st.markdown(f"<p class='progress-text'>투표 진행: {completed_count}/{total_voters} 완료</p>", unsafe_allow_html=True)
     
-    voter = st.selectbox("투표자 선택", [v for v in st.session_state.voters if not st.session_state.completed[v]], key="voter_select")
-    if st.button("투표 시작하기"):
-        st.session_state.current_voter = voter
-        st.session_state.stage = "vote_input"
-        st.rerun()
-
     if all(st.session_state.completed.values()):
+        st.success("✅ 모든 투표가 완료되었습니다!")
         if st.button("모든 투표 완료 → 방식 선택으로 이동"):
             st.session_state.stage = "method_select"
+            st.rerun()
+    else:
+        voter = st.selectbox("투표자 선택", [v for v in st.session_state.voters if not st.session_state.completed[v]], key="voter_select")
+        if st.button("투표 시작하기"):
+            st.session_state.current_voter = voter
+            st.session_state.stage = "vote_input"
             st.rerun()
 
 # 순위 입력
@@ -310,3 +323,4 @@ elif st.session_state.stage == "result":
                     del st.session_state[key]
             st.session_state.stage = "home"
             st.rerun()
+        

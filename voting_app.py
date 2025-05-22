@@ -197,21 +197,35 @@ elif st.session_state.stage == "vote_input":
     st.title(f"🗳️ {voter}의 투표 입력")
     
     st.subheader("🔢 순위 입력")
-    ranks = {}
-    used_ranks = set()
-    for candidate in st.session_state.candidates:
-        rank = st.number_input(
-            f"{candidate}의 순위",
-            min_value=1,
-            max_value=len(st.session_state.candidates),
-            step=1,
-            key=f"rank_{candidate}_{voter}_{uuid.uuid4()}"  # 고유 키로 충돌 방지
-        )
-        ranks[candidate] = rank
-        used_ranks.add(rank)
+    st.markdown("각 후보에 대해 고유한 순위를 선택하세요 (1이 가장 선호).")
     
-    if len(used_ranks) != len(ranks):
-        st.error("각 후보는 고유한 순위를 가져야 합니다.")
+    # 순위 선택을 위한 초기화
+    if f"rank_choices_{voter}" not in st.session_state:
+        st.session_state[f"rank_choices_{voter}"] = {c: None for c in st.session_state.candidates}
+    
+    ranks = {}
+    available_ranks = list(range(1, len(st.session_state.candidates) + 1))
+    
+    for candidate in st.session_state.candidates:
+        used_ranks = [r for r in st.session_state[f"rank_choices_{voter}"].values() if r is not None]
+        current_options = [r for r in available_ranks if r not in used_ranks]
+        if not current_options:
+            current_options = available_ranks  # 모든 순위가 사용된 경우 초기화 방지
+        rank = st.selectbox(
+            f"{candidate}의 순위",
+            options=current_options,
+            index=0 if st.session_state[f"rank_choices_{voter}"][candidate] is None else current_options.index(st.session_state[f"rank_choices_{voter}"][candidate]) if st.session_state[f"rank_choices_{voter}"][candidate] in current_options else 0,
+            key=f"rank_{candidate}_{voter}_{uuid.uuid4()}"
+        )
+        st.session_state[f"rank_choices_{voter}"][candidate] = rank
+        ranks[candidate] = rank
+    
+    # 순위 유효성 검사
+    selected_ranks = [r for r in ranks.values() if r is not None]
+    if len(set(selected_ranks)) != len(selected_ranks):
+        st.error("각 후보는 고유한 순위를 가져야 합니다. 중복된 순위를 수정해주세요.")
+    elif len(selected_ranks) != len(st.session_state.candidates):
+        st.error("모든 후보에 순위를 지정해야 합니다.")
     elif st.button("순위 입력 완료 → 점수 입력으로 이동"):
         st.session_state.votes[voter]['rank'] = ranks
         st.session_state.stage = "score_input"
